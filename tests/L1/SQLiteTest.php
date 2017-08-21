@@ -5,14 +5,14 @@
  * Test file for the SQLite L1 driver in LCache library.
  */
 
-namespace LCache\L1;
+namespace LCache\l1;
 
 /**
  * SQLiteTest concrete implementation.
  *
  * @author ndobromirov
  */
-class SQLiteTest extends \LCache\L1CacheTest
+class SQLiteTest extends L1CacheTest
 {
     /**
      * {@inheritDoc}

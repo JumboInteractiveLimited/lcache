@@ -1,6 +1,10 @@
 <?php
 
-namespace LCache;
+namespace LCache\l1;
+
+use LCache\Address;
+use LCache\Entry;
+use LCache\state\StateL1Interface;
 
 class StaticL1 extends L1
 {
@@ -8,7 +12,9 @@ class StaticL1 extends L1
 
     protected $key_overhead;
 
-    /** @var array Reference to the data array for the instance data pool. */
+    /**
+     * @var array Reference to the data array for the instance data pool.
+     */
     protected $storage;
 
     public function __construct($pool, StateL1Interface $state)
@@ -76,7 +82,7 @@ class StaticL1 extends L1
             return null;
         }
         $entry = $this->storage[$local_key];
-        if (!is_null($entry->expiration) && $entry->expiration < $_SERVER['REQUEST_TIME']) {
+        if (!is_null($entry->expiration) && $entry->expiration < $this->created_time) {
             unset($this->storage[$local_key]);
             $this->recordMiss();
             return null;

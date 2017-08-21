@@ -2,25 +2,32 @@
 
 namespace LCache;
 
+use LCache\l1\L1;
+use LCache\l2\L2;
+
 final class Integrated
 {
     protected $l1;
     protected $l2;
     protected $overhead_threshold;
+    protected $created_time;
 
-    public function __construct(L1 $l1, L2 $l2, $overhead_threshold = null)
+    public function __construct(L1 $l1, L2 $l2, int $created_time, $overhead_threshold = null)
     {
         $this->l1 = $l1;
         $this->l2 = $l2;
         $this->overhead_threshold = $overhead_threshold;
+        $this->created_time = $created_time;
+        $l1->setCreatedTime($this->created_time);
+        $l2->setCreatedTime($this->created_time);
     }
 
     public function set(Address $address, $value, $ttl_or_expiration = null, array $tags = [])
     {
         $expiration = null;
         if (!is_null($ttl_or_expiration)) {
-            if ($ttl_or_expiration < $_SERVER['REQUEST_TIME']) {
-                $expiration = $_SERVER['REQUEST_TIME'] + $ttl_or_expiration;
+            if ($ttl_or_expiration < $this->created_time) {
+                $expiration = $this->created_time + $ttl_or_expiration;
             } else {
                 $expiration = $ttl_or_expiration;
             }
@@ -44,8 +51,8 @@ final class Integrated
                 // in L1 for a number of minutes equivalent to the number of
                 // excessive sets over the threshold, plus one minute.
                 if (!is_null($event_id)) {
-                    $expiration = $_SERVER['REQUEST_TIME'] + ($excess + 1) * 60;
-                    $this->l1->setWithExpiration($event_id, $address, null, $_SERVER['REQUEST_TIME'], $expiration);
+                    $expiration = $this->created_time + ($excess + 1) * 60;
+                    $this->l1->setWithExpiration($event_id, $address, null, $this->created_time, $expiration);
                 }
                 return $event_id;
             }
@@ -68,7 +75,7 @@ final class Integrated
         if (is_null($entry)) {
             // On an L2 miss, construct a negative cache entry that will be
             // overwritten on any update.
-            $entry = new Entry(0, $this->l1->getPool(), $address, null, $_SERVER['REQUEST_TIME'], null);
+            $entry = new Entry(0, $this->l1->getPool(), $address, null, $this->created_time, null);
         }
         $this->l1->setWithExpiration($entry->event_id, $address, $entry->value, $entry->created, $entry->expiration);
         return $entry;
@@ -149,5 +156,10 @@ final class Integrated
     public function collectGarbage($item_limit = null)
     {
         return $this->l2->collectGarbage($item_limit);
+    }
+
+    public function getCreatedTime(): int
+    {
+        return $this->created_time;
     }
 }

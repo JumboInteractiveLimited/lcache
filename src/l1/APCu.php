@@ -1,10 +1,16 @@
 <?php
 
-namespace LCache;
+namespace LCache\l1;
 
-class APCuL1 extends L1
+use LCache\Address;
+use LCache\Entry;
+use LCache\state\StateL1Interface;
+
+class APCu extends L1
 {
-    /** @var string */
+    /**
+     * @var string
+     */
     private $localKeyPrefix;
 
     public function __construct($pool, StateL1Interface $state)

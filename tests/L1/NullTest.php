@@ -6,7 +6,7 @@
  * and open the template in the editor.
  */
 
-namespace LCache\L1;
+namespace LCache\l1;
 
 use LCache\Address;
 
@@ -15,7 +15,7 @@ use LCache\Address;
  *
  * @author ndobromirov
  */
-class NullTest extends \LCache\L1CacheTest
+class NullTest extends L1CacheTest
 {
 
     protected function driverName()

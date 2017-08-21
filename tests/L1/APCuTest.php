@@ -5,14 +5,14 @@
  * Test file for the APCu L1 driver in LCache library.
  */
 
-namespace LCache\L1;
+namespace LCache\l1;
 
 /**
  * APCuTest concrete implementation.
  *
  * @author ndobromirov
  */
-class APCuTest extends \LCache\L1CacheTest
+class APCuTest extends L1CacheTest
 {
 
     protected function setUp()
