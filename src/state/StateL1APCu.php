@@ -5,7 +5,7 @@
  * L1 state manager implementation.
  */
 
-namespace LCache;
+namespace LCache\state;
 
 /**
  * L1 statistics manager storing in APCu.
@@ -14,16 +14,24 @@ namespace LCache;
  */
 class StateL1APCu implements StateL1Interface
 {
-    /** @var string */
+    /**
+     * @var string
+     */
     private $pool;
 
-    /** @var string */
+    /**
+     * @var string
+     */
     private $statusKeyHits;
 
-    /** @var string */
+    /**
+     * @var string
+     */
     private $statusKeyMisses;
 
-    /** @var string */
+    /**
+     * @var string
+     */
     private $statusKeyLastAppliedEventId;
 
     /**

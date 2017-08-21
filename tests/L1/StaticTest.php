@@ -5,14 +5,14 @@
  * Test file for the Static L1 driver in LCache library.
  */
 
-namespace LCache\L1;
+namespace LCache\l1;
 
 /**
  * StaticTest concrete implementation.
  *
  * @author ndobromirov
  */
-class StaticTest extends \LCache\L1CacheTest
+class StaticTest extends L1CacheTest
 {
     /**
      * {@inheritDoc}

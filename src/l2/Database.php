@@ -1,8 +1,13 @@
 <?php
 
-namespace LCache;
+namespace LCache\l2;
 
-class DatabaseL2 extends L2
+use LCache\Address;
+use LCache\Entry;
+use LCache\UnserializationException;
+use LCache\l1\L1;
+
+class Database extends L2
 {
     protected $hits;
     protected $misses;
@@ -69,7 +74,7 @@ class DatabaseL2 extends L2
     {
         try {
             $sth = $this->dbh->prepare('SELECT COUNT(*) garbage FROM ' . $this->prefixTable('lcache_events') . ' WHERE "expiration" < :now');
-            $sth->bindValue(':now', $_SERVER['REQUEST_TIME'], \PDO::PARAM_INT);
+            $sth->bindValue(':now', $this->created_time, \PDO::PARAM_INT);
             $sth->execute();
         } catch (\PDOException $e) {
             $this->logSchemaIssueOrRethrow('Failed to count garbage', $e);
@@ -91,7 +96,7 @@ class DatabaseL2 extends L2
         // @codeCoverageIgnoreEnd
         try {
             $sth = $this->dbh->prepare($sql);
-            $sth->bindValue(':now', $_SERVER['REQUEST_TIME'], \PDO::PARAM_INT);
+            $sth->bindValue(':now', $this->created_time, \PDO::PARAM_INT);
             // This is not supported by standard SQLite.
             // @codeCoverageIgnoreStart
             if (!is_null($item_limit)) {
@@ -153,7 +158,7 @@ class DatabaseL2 extends L2
         try {
             $sth = $this->dbh->prepare('SELECT "event_id", "pool", "address", "value", "created", "expiration" FROM ' . $this->prefixTable('lcache_events') .' WHERE "address" = :address AND ("expiration" >= :now OR "expiration" IS NULL) ORDER BY "event_id" DESC LIMIT 1');
             $sth->bindValue(':address', $address->serialize(), \PDO::PARAM_STR);
-            $sth->bindValue(':now', $_SERVER['REQUEST_TIME'], \PDO::PARAM_INT);
+            $sth->bindValue(':now', $this->created_time, \PDO::PARAM_INT);
             $sth->execute();
         } catch (\PDOException $e) {
             $this->logSchemaIssueOrRethrow('Failed to search database for cache item', $e);
@@ -204,7 +209,7 @@ class DatabaseL2 extends L2
         try {
             $sth = $this->dbh->prepare('SELECT "event_id", ("value" IS NOT NULL) AS value_not_null, "value" FROM ' . $this->prefixTable('lcache_events') .' WHERE "address" = :address AND ("expiration" >= :now OR "expiration" IS NULL) ORDER BY "event_id" DESC LIMIT 1');
             $sth->bindValue(':address', $address->serialize(), \PDO::PARAM_STR);
-            $sth->bindValue(':now', $_SERVER['REQUEST_TIME'], \PDO::PARAM_INT);
+            $sth->bindValue(':now', $this->created_time, \PDO::PARAM_INT);
             $sth->execute();
         } catch (\PDOException $e) {
             $this->logSchemaIssueOrRethrow('Failed to search database for cache item existence', $e);
@@ -253,7 +258,7 @@ class DatabaseL2 extends L2
             $sth->bindValue(':address', $address->serialize(), \PDO::PARAM_STR);
             $sth->bindValue(':value', $value, \PDO::PARAM_LOB);
             $sth->bindValue(':expiration', $expiration, \PDO::PARAM_INT);
-            $sth->bindValue(':now', $_SERVER['REQUEST_TIME'], \PDO::PARAM_INT);
+            $sth->bindValue(':now', $this->created_time, \PDO::PARAM_INT);
             $sth->execute();
         } catch (\PDOException $e) {
             $this->logSchemaIssueOrRethrow('Failed to store cache event', $e);

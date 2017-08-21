@@ -5,7 +5,7 @@
  * In-memory implementation of statistics storage for L1 drivers.
  */
 
-namespace LCache;
+namespace LCache\state;
 
 /**
  * Description of StateL1Static
@@ -14,13 +14,19 @@ namespace LCache;
  */
 class StateL1Static implements StateL1Interface
 {
-    /** @var int Container variable for the cache-hit count. */
+    /**
+     * @var int Container variable for the cache-hit count.
+     */
     protected $hits;
 
-    /** @var int Container variable for the cache-miss count. */
+    /**
+     * @var int Container variable for the cache-miss count.
+     */
     protected $misses;
 
-    /** @var int Container variable for the last applied event id value. */
+    /**
+     * @var int Container variable for the last applied event id value.
+     */
     protected $last_applied_event_id;
 
     /**
