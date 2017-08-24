@@ -96,7 +96,7 @@ class StaticL2 extends L2
         if (!$value_is_serialized) {
             $value = serialize($value);
         }
-        $this->events[$this->current_event_id] = new Entry($this->current_event_id, $pool, $address, $value, $this->created_time, $expiration);
+        $this->events[$this->current_event_id] = new Entry($this->current_event_id, $pool, $address, $value, $this->created_time, $expiration, $tags);
 
         // Clear existing tags linked to the item. This is much more
         // efficient with database-style indexes.

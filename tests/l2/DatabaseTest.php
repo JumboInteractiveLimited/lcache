@@ -8,21 +8,14 @@ use PDO;
 use PHPUnit_Extensions_Database_DataSet_DefaultDataSet;
 use PHPUnit_Extensions_Database_TestCase;
 
-class DatabaseTest extends PHPUnit_Extensions_Database_TestCase
+class DatabaseTest extends L2CacheTest
 {
     protected $dbh = null;
 
-    public function testDatabaseBatchDeletion()
+    protected function buildL2()
     {
         DatabaseSchema::create($this->dbh);
-        $l2 = (new Database($this->dbh))->setCreatedTime(time());
-        $myaddr = new Address('mybin', 'mykey');
-        $l2->set('mypool', $myaddr, 'myvalue');
-
-        $mybin = new Address('mybin', null);
-        $l2->delete('mypool', $mybin);
-
-        $this->assertNull($l2->get($myaddr));
+        return (new Database($this->dbh))->setCreatedTime(time());
     }
 
     public function testDatabaseCleanupAfterWrite()
@@ -58,27 +51,14 @@ class DatabaseTest extends PHPUnit_Extensions_Database_TestCase
         $this->assertNull($event);
     }
 
-    public function testExistsDatabase()
-    {
-        DatabaseSchema::create($this->dbh);
-        $l2 = (new Database($this->dbh))->setCreatedTime(time());
-        $myaddr = new Address('mybin', 'mykey');
-        $l2->set('mypool', $myaddr, 'myvalue');
-        $this->assertTrue($l2->exists($myaddr));
-        $l2->delete('mypool', $myaddr);
-        $this->assertFalse($l2->exists($myaddr));
-    }
-
     public function testEmptyCleanUpDatabase()
     {
-        DatabaseSchema::create($this->dbh);
-        $l2 = (new Database($this->dbh))->setCreatedTime(time());
+        $l2 = $this->buildL2();
     }
 
     public function testDatabasePrefix()
     {
-        DatabaseSchema::create($this->dbh, 'myprefix_');
-        $l2 = (new Database($this->dbh, 'myprefix_'))->setCreatedTime(time());
+        $l2 = $this->buildL2();
         $myaddr = new Address('mybin', 'mykey');
         $l2->set('mypool', $myaddr, 'myvalue', null, ['mytag']);
         $this->assertEquals('myvalue', $l2->get($myaddr));
