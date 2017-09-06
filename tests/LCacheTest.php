@@ -2,6 +2,8 @@
 
 namespace LCache;
 
+use LCache\l2\Redis;
+use Redis as PHPRedis;
 use LCache\l1\L1CacheFactory;
 use LCache\l2\Database;
 use LCache\l2\StaticL2;
@@ -109,8 +111,9 @@ class LCacheTest extends PHPUnit_Extensions_Database_TestCase
     protected function performSynchronizationTest($central, $first_l1, $second_l1)
     {
         // Create two integrated pools with independent L1s.
-        $pool1 = new Integrated($first_l1, $central, time());
-        $pool2 = new Integrated($second_l1, $central, time());
+        $time = time();
+        $pool1 = new Integrated($first_l1, $central, $time);
+        $pool2 = new Integrated($second_l1, $central, $time);
 
         $myaddr = new Address('mybin', 'mykey');
 
@@ -131,6 +134,9 @@ class LCacheTest extends PHPUnit_Extensions_Database_TestCase
         $changes = $pool2->synchronize();
         $this->assertNull($changes);
         $this->assertEquals(1, $second_l1->getLastAppliedEventID());
+
+        // Set a value that will not be synchronized on pool2 for coverage
+        $pool2->set(new Address(uniqid(), uniqid()), uniqid());
 
         // Alter the item in Pool 1. Pool 2 should hit its L1 again
         // with the out-of-date item. Synchronizing should fix it.
@@ -336,6 +342,25 @@ class LCacheTest extends PHPUnit_Extensions_Database_TestCase
         );
         $this->performClearSynchronizationTest(
             $central,
+            $this->l1Factory()->create('sqlite'),
+            $this->l1Factory()->create('sqlite')
+        );
+    }
+
+    public function testRedisPhp()
+    {
+        $this->performSynchronizationTest(
+            $this->buildPhpRedis(),
+            $this->l1Factory()->create('sqlite'),
+            $this->l1Factory()->create('sqlite')
+        );
+        $this->performTaggedSynchronizationTest(
+            $this->buildPhpRedis(),
+            $this->l1Factory()->create('sqlite'),
+            $this->l1Factory()->create('sqlite')
+        );
+        $this->performClearSynchronizationTest(
+            $this->buildPhpRedis(),
             $this->l1Factory()->create('sqlite'),
             $this->l1Factory()->create('sqlite')
         );
@@ -613,11 +638,7 @@ class LCacheTest extends PHPUnit_Extensions_Database_TestCase
         $this->assertEquals(2, $l1->getKeyOverhead($myaddr));
         $this->assertFalse($l1->isNegativeCache($myaddr));
         $this->assertNotNull($pool->set($myaddr, 'myvalue3'));
-/*
-var_dump($l1);exit;
-var_dump($l1->getEntry($myaddr));
         $this->assertFalse($pool->exists($myaddr));
-*/
 
         // A few more sets to offset the existence check, which some L1s may
         // treat as a hit. This should put us firmly in excessive territory.
@@ -627,8 +648,8 @@ var_dump($l1->getEntry($myaddr));
 
         // Now, with the local negative cache, these shouldn't even return
         // an event_id.
-//        $this->assertNull($pool->set($myaddr, 'myvalueA1'));
-//        $this->assertNull($pool->set($myaddr, 'myvalueA2'));
+        $this->assertNull($pool->set($myaddr, 'myvalueA1'));
+        $this->assertNull($pool->set($myaddr, 'myvalueA2'));
 
         // Test a lot of sets but with enough hits to drop below the threshold.
         $myaddr2 = new Address('mybin', 'mykey2');
@@ -702,4 +723,27 @@ var_dump($l1->getEntry($myaddr));
     {
         return new \PHPUnit_Extensions_Database_DataSet_DefaultDataSet();
     }
+
+    protected function buildPhpRedis()
+    {
+        $redis = new PHPRedis();
+        $redis->connect('127.0.0.1');
+        $redis->flushdb();
+        $l2 = new Redis($redis);
+        return new Redis($redis);
+    }
+
+/*
+
+            public function testApplyEvents()
+            {
+                #### IN PROGRESS ####
+                $l1 = $this->buildL1();
+                $l2 = $this->buildL2();
+                $myaddr = new Address('mybin', 'mykey');
+                $l1->set(uniqid(), $myaddr, 'myvalue');
+                $l2->set('mypool', $myaddr, 'myvalue', null, ['mykey']);
+                $l2->applyEvents($l1);
+            }
+    */
 }

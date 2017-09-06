@@ -12,6 +12,7 @@ class RedisSerializerTest extends RedisTest
         $redis = new PHPRedis();
         $redis->connect('127.0.0.1');
         $redis->setOption(PHPRedis::OPT_SERIALIZER, PHPRedis::SERIALIZER_PHP);
+        $redis->flushdb();
         return (new Redis($redis))
             ->setCreatedTime(time());
     }

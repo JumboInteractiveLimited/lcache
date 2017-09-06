@@ -46,7 +46,7 @@ class Redis extends L2
         $address_keys = array_unique($this->address_deletion_keys);
         $this->redis->multi()
             ->delete($address_keys)
-            ->zRem($this->keyConstruct('ids'), ...$address_keys)
+            ->zRem($this->keyConstruct('event', 'ids'), ...$address_keys)
             ->exec();
 
         // Clear the queue.
@@ -125,7 +125,7 @@ class Redis extends L2
         return $entry;
     }
 
-    private function entryFromHash(array $hash)
+    private function entryFromHash(array $hash, $miss_on_delete = true)
     {
         return $this->entryFromHashValues(
             $hash['event_id'],
@@ -134,11 +134,12 @@ class Redis extends L2
             $hash['value'],
             $hash['tags'],
             $hash['created'],
-            $hash['expire']
+            $hash['expire'],
+            $miss_on_delete
         );
     }
 
-    protected function entryFromHashValues($event_id, $address, $pool, $value, $tags, $created, $expire)
+    protected function entryFromHashValues($event_id, $address, $pool, $value, $tags, $created, $expire, $miss_on_delete)
     {
         if ("" == $value && $this->autoserialize) {
             $unserialized_value = null;
@@ -149,7 +150,7 @@ class Redis extends L2
         $unserialized_address = new Address();
         $unserialized_address->unserialize($address);
 
-        if (!$this->autoserialize) {
+        if (!$this->autoserialize && $miss_on_delete) {
             // If last event was a deletion, miss
             if (is_null($unserialized_value) && serialize(null) == $value) {
                 return null;
@@ -204,7 +205,7 @@ class Redis extends L2
             1 => $this->keyFromAddress($address),
             2 => $this->keyConstruct('event'),
             3 => $this->keyConstruct('tag') . self::KEY_DELIMITER,
-            4 => $this->keyConstruct('ids'),
+            4 => $this->keyConstruct('event', 'ids'),
         ];
         $args = [
             1 => $address->serialize(),
@@ -231,7 +232,7 @@ class Redis extends L2
           end
           redis.call('zadd', KEYS[4], event_id, KEYS[1])
           return event_id
-		", array_merge($keys, $args, $tags), count($keys));
+        ", array_merge($keys, $args, $tags), count($keys));
     }
 
     public function set($pool, Address $address, $value = null, $expiration = null, array $tags = [], $value_is_serialized = false)
@@ -241,10 +242,6 @@ class Redis extends L2
         if (!$value_is_serialized && !$this->autoserialize) {
             $value = is_null($value) ? serialize(null) : serialize($value);
         }
-
-        $expiration = $expiration ?? $this->created_time + $this->default_ttl;
-
-        $event_id = $this->redisSet($address, $pool, $value, $tags, $expiration);
 
         // Handle bin and larger deletions immediately. Queue individual key deletions for shutdown.
         // Clearing an entire bin does not remove the items in that bin
@@ -257,13 +254,13 @@ class Redis extends L2
                     redis.call('del', unpack(keys, i, math.min(i + 4999, #keys)))
                   end
                 ",
-                [($address->isEntireCache() ? $this->prefix . ':' : $key) . '*']
+                [$address->isEntireCache() ? $this->keyConstruct('event', '*') : $this->keyFromAddress($address) . '*']
             );
         } else if (is_null($original_value)) {
             $this->queueDeletion($address);
         }
 
-        return $event_id;
+        return $this->redisSet($address, $pool, $value, $tags, $expiration ?? $this->created_time + $this->default_ttl);
     }
 
     public function applyEvents(L1 $l1)
@@ -272,16 +269,11 @@ class Redis extends L2
 
         // If the L1 cache is empty, bump the last applied ID to the current high-water mark.
         if (is_null($last_applied_event_id)) {
-            $last_event_id = intval($this->redis->get($this->keyConstruct('event')));
-            if (false === $last_event_id) {
-                $l1->setLastAppliedEventID(0);
-            } else {
-                $l1->setLastAppliedEventID($last_event_id);
-            }
+            $l1->setLastAppliedEventID(intval($this->redis->get($this->keyConstruct('event'))));
             return null;
         }
 
-        $keys = $this->redis->zRangeByScore($this->keyConstruct('ids'), $last_applied_event_id, '+inf');
+        $keys = $this->redis->zRangeByScore($this->keyConstruct('event', 'ids'), $last_applied_event_id, '+inf');
         $transaction = $this->redis->multi(PHPRedis::PIPELINE);
         foreach ($keys as $key) {
             $transaction = $transaction->hGetAll($key);
@@ -290,11 +282,11 @@ class Redis extends L2
         $bad_pool = $l1->getPool();
         $applied = 0;
         foreach ($transaction->exec() as $values) {
-            if (!is_array($values) || $values['pool'] == $bad_pool) {
+            if (!is_array($values) || empty($values) || $values['pool'] == $bad_pool) {
                 continue;
             }
 
-            $event = $this->entryFromHash($values);
+            $event = $this->entryFromHash($values, false);
             if (is_null($event->value)) {
                 $address = new Address();
                 $address->unserialize($values->address);

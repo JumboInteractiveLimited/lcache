@@ -11,6 +11,7 @@ class RedisTest extends L2CacheTest
     {
         $redis = new PHPRedis();
         $redis->connect('127.0.0.1');
+        $redis->flushdb();
         return (new Redis($redis))
             ->setCreatedTime(time());
     }
