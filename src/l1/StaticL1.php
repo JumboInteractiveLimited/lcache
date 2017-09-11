@@ -12,9 +12,7 @@ class StaticL1 extends L1
 
     protected $key_overhead;
 
-    /**
-     * @var array Reference to the data array for the instance data pool.
-     */
+    /** @var array Reference to the data array for the instance data pool. */
     protected $storage;
 
     public function __construct($pool, StateL1Interface $state)

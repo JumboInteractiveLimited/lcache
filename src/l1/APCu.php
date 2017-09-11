@@ -8,9 +8,7 @@ use LCache\state\StateL1Interface;
 
 class APCu extends L1
 {
-    /**
-     * @var string
-     */
+    /** @var string */
     private $localKeyPrefix;
 
     public function __construct($pool, StateL1Interface $state)

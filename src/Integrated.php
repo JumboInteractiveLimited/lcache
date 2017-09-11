@@ -12,7 +12,13 @@ final class Integrated
     protected $overhead_threshold;
     protected $created_time;
 
-    public function __construct(L1 $l1, L2 $l2, int $created_time, $overhead_threshold = null)
+    /**
+     * @param L1 $l1
+     * @param L2 $l2
+     * @param int $created_time
+     * @param int $overhead_threshold
+     */
+    public function __construct(L1 $l1, L2 $l2, $created_time, $overhead_threshold = null)
     {
         $this->l1 = $l1;
         $this->l2 = $l2;
@@ -158,7 +164,10 @@ final class Integrated
         return $this->l2->collectGarbage($item_limit);
     }
 
-    public function getCreatedTime(): int
+    /**
+     * @return int
+     */
+    public function getCreatedTime()
     {
         return $this->created_time;
     }

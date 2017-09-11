@@ -10,15 +10,13 @@ abstract class L1 extends LX
 {
     protected $pool;
 
-    /**
-     * @var StateL1Interface
-     */
+    /** @var StateL1Interface */
     protected $state;
 
     /**
      * Constructor for all the L1 implementations.
      *
-     * @param string                   $pool
+     * @param string $pool
      *   Pool ID to group the cache data in.
      * @param \LCache\StateL1Interface $state
      *   State manager class. Used to collect hit/miss statistics as well as
@@ -50,7 +48,12 @@ abstract class L1 extends LX
         return $this->setWithExpiration($event_id, $address, $value, $this->created_time, $expiration);
     }
 
+    /**
+     * @param Address $address
+     * @return bool
+     */
     abstract public function isNegativeCache(Address $address);
+
     abstract public function getKeyOverhead(Address $address);
     abstract public function setWithExpiration($event_id, Address $address, $value, $created, $expiration = null);
     abstract public function delete($event_id, Address $address);

@@ -25,7 +25,6 @@ final class Entry
 
     /**
      * Return the Address for this entry.
-     *
      * @return Address
      */
     public function getAddress()
@@ -35,7 +34,6 @@ final class Entry
 
     /**
      * Return the time-to-live for this entry.
-     *
      * @return integer
      */
     public function getTTL()

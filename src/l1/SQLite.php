@@ -7,9 +7,7 @@ use LCache\state\StateL1Interface;
 
 class SQLite extends L1
 {
-    /**
-     * @var \PDO
-     */
+    /** @var \PDO */
     private $dbh;
 
     protected static function tableExists(\PDO $dbh, $table_name)
@@ -72,7 +70,7 @@ class SQLite extends L1
         $sth->bindValue(':now', $this->created_time, \PDO::PARAM_INT);
         try {
             $sth->execute();
-            // @codeCoverageIgnoreStart
+        // @codeCoverageIgnoreStart
         } catch (\PDOException $e) {
             $text = 'LCache SQLiteL1: Pruning Failed: ' . $e->getMessage();
             trigger_error($text, E_USER_WARNING);

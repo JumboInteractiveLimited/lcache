@@ -15,8 +15,7 @@ abstract class LX
 
     /**
      * Fetch a value from the cache.
-     *
-     * @param  Address $address
+     * @param Address $address
      * @return string|null
      */
     public function get(Address $address)
@@ -30,8 +29,7 @@ abstract class LX
 
     /**
      * Determine whether or not the specified Address exists in the cache.
-     *
-     * @param  Address $address
+     * @param Address $address
      * @return boolean
      */
     public function exists(Address $address)
@@ -45,7 +43,11 @@ abstract class LX
         return 0;
     }
 
-    public function setCreatedTime(int $timestamp): LX
+    /**
+     * @param int $timestamp
+     * @return LX
+     */
+    public function setCreatedTime($timestamp)
     {
         $this->created_time = $timestamp;
         return $this;

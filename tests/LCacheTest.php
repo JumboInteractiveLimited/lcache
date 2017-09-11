@@ -7,9 +7,8 @@ use Redis as PHPRedis;
 use LCache\l1\L1CacheFactory;
 use LCache\l2\Database;
 use LCache\l2\StaticL2;
-use PHPUnit_Extensions_Database_TestCase;
 
-class LCacheTest extends PHPUnit_Extensions_Database_TestCase
+class LCacheTest extends \PHPUnit_Extensions_Database_TestCase
 {
     protected $dbh = null;
 
@@ -27,13 +26,61 @@ class LCacheTest extends PHPUnit_Extensions_Database_TestCase
     }
 
     /**
-     * @return PHPUnit_Extensions_Database_DB_IDatabaseConnection
-     */
+   * @return PHPUnit_Extensions_Database_DB_IDatabaseConnection
+   */
     protected function getConnection()
     {
         $this->dbh = new \PDO('sqlite::memory:');
         $this->dbh->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
         return $this->createDefaultDBConnection($this->dbh, ':memory:');
+    }
+
+    protected function createSchema($prefix = '')
+    {
+        $this->dbh->exec('PRAGMA foreign_keys = ON');
+
+        $this->dbh->exec('CREATE TABLE ' . $prefix . 'lcache_events("event_id" INTEGER PRIMARY KEY AUTOINCREMENT, "pool" TEXT NOT NULL, "address" TEXT, "value" BLOB, "expiration" INTEGER, "created" INTEGER NOT NULL)');
+        $this->dbh->exec('CREATE INDEX ' . $prefix . 'latest_entry ON ' . $prefix . 'lcache_events ("address", "event_id")');
+
+        // @TODO: Set a proper primary key and foreign key relationship.
+        $this->dbh->exec('CREATE TABLE ' . $prefix . 'lcache_tags("tag" TEXT, "event_id" INTEGER, PRIMARY KEY ("tag", "event_id"), FOREIGN KEY("event_id") REFERENCES ' . $prefix . 'lcache_events("event_id") ON DELETE CASCADE)');
+        $this->dbh->exec('CREATE INDEX ' . $prefix . 'rewritten_entry ON ' . $prefix . 'lcache_tags ("event_id")');
+    }
+
+    public function testL1Factory()
+    {
+        // TODO: Move to L1CacheTest.
+        $staticL1 = $this->l1Factory()->create('static');
+        $invalidL1 = $this->l1Factory()->create('invalid_cache_driver');
+        $this->assertEquals(get_class($staticL1), get_class($invalidL1));
+    }
+
+    public function testClearStaticL2()
+    {
+        $l2 = (new StaticL2())->setCreatedTime(time());
+        $myaddr = new Address('mybin', 'mykey');
+        $l2->set('mypool', $myaddr, 'myvalue');
+        $l2->delete('mypool', new Address());
+        $this->assertNull($l2->get($myaddr));
+    }
+
+    public function testStaticL2Expiration()
+    {
+        $l2 = (new StaticL2())->setCreatedTime(time());
+        $myaddr = new Address('mybin', 'mykey');
+        $l2->set('mypool', $myaddr, 'myvalue', -1);
+        $this->assertNull($l2->get($myaddr));
+    }
+
+    public function testStaticL2Reread()
+    {
+        $l2 = new StaticL2();
+        $myaddr = new Address('mybin', 'mykey');
+        $l2->set('mypool', $myaddr, 'myvalue');
+        $this->assertEquals('myvalue', $l2->get($myaddr));
+        $this->assertEquals('myvalue', $l2->get($myaddr));
+        $this->assertEquals('myvalue', $l2->get($myaddr));
+        $this->assertEquals('myvalue', $l2->get($myaddr));
     }
 
     public function testNewPoolSynchronization()
@@ -368,7 +415,7 @@ class LCacheTest extends PHPUnit_Extensions_Database_TestCase
 
     public function testSynchronizationDatabase()
     {
-        DatabaseSchema::create($this->dbh);
+        $this->createSchema();
         $central = new Database($this->dbh);
         $this->performSynchronizationTest(
             $central,
@@ -384,7 +431,7 @@ class LCacheTest extends PHPUnit_Extensions_Database_TestCase
 
     public function testTaggedSynchronizationDatabase()
     {
-        DatabaseSchema::create($this->dbh);
+        $this->createSchema();
         $central = new Database($this->dbh);
         $this->performTaggedSynchronizationTest(
             $central,
@@ -395,7 +442,7 @@ class LCacheTest extends PHPUnit_Extensions_Database_TestCase
 
     public function testBrokenDatabaseFallback()
     {
-        DatabaseSchema::create($this->dbh);
+        $this->createSchema();
         $l2 = new Database($this->dbh, '', true);
         $l1 = $this->l1Factory()->create('static', 'first');
         $pool = new Integrated($l1, $l2, time());
@@ -431,16 +478,33 @@ class LCacheTest extends PHPUnit_Extensions_Database_TestCase
 
     public function testDatabaseSyncWithNoWrites()
     {
-        DatabaseSchema::create($this->dbh);
+        $this->createSchema();
         $l2 = new Database($this->dbh, '', true);
         $l1 = $this->l1Factory()->create('static', 'first');
         $pool = new Integrated($l1, $l2, time());
         $pool->synchronize();
     }
 
+    public function testExistsDatabase()
+    {
+        $this->createSchema();
+        $l2 = (new Database($this->dbh))->setCreatedTime(time());
+        $myaddr = new Address('mybin', 'mykey');
+        $l2->set('mypool', $myaddr, 'myvalue');
+        $this->assertTrue($l2->exists($myaddr));
+        $l2->delete('mypool', $myaddr);
+        $this->assertFalse($l2->exists($myaddr));
+    }
+
+    public function testEmptyCleanUpDatabase()
+    {
+        $this->createSchema();
+        $l2 = (new Database($this->dbh))->setCreatedTime(time());
+    }
+
     public function testExistsIntegrated()
     {
-        DatabaseSchema::create($this->dbh);
+        $this->createSchema();
         $l2 = new Database($this->dbh);
         $l1 = $this->l1Factory()->create('apcu', 'first');
         $pool = new Integrated($l1, $l2, time());
@@ -449,6 +513,15 @@ class LCacheTest extends PHPUnit_Extensions_Database_TestCase
         $this->assertTrue($pool->exists($myaddr));
         $pool->delete($myaddr);
         $this->assertFalse($pool->exists($myaddr));
+    }
+
+    public function testDatabasePrefix()
+    {
+        $this->createSchema('myprefix_');
+        $l2 = (new Database($this->dbh, 'myprefix_'))->setCreatedTime(time());
+        $myaddr = new Address('mybin', 'mykey');
+        $l2->set('mypool', $myaddr, 'myvalue', null, ['mytag']);
+        $this->assertEquals('myvalue', $l2->get($myaddr));
     }
 
     public function testPoolIntegrated()
@@ -507,7 +580,7 @@ class LCacheTest extends PHPUnit_Extensions_Database_TestCase
 
     public function testDatabaseFailedUnserialization()
     {
-        DatabaseSchema::create($this->dbh);
+        $this->createSchema();
         $l2 = new Database($this->dbh);
         $this->performFailedUnserializationTest($l2);
         $this->performCaughtUnserializationOnGetTest($l2);
@@ -536,7 +609,7 @@ class LCacheTest extends PHPUnit_Extensions_Database_TestCase
      */
     public function testDatabaseFailedUnserializationOnGet()
     {
-        DatabaseSchema::create($this->dbh);
+        $this->createSchema();
         $l2 = new Database($this->dbh);
         $this->performFailedUnserializationOnGetTest($l2);
     }
@@ -563,7 +636,7 @@ class LCacheTest extends PHPUnit_Extensions_Database_TestCase
 
     public function testDatabaseGarbageCollection()
     {
-        DatabaseSchema::create($this->dbh);
+        $this->createSchema();
         $l2 = new Database($this->dbh);
         $this->performGarbageCollectionTest($l2);
     }
@@ -627,7 +700,7 @@ class LCacheTest extends PHPUnit_Extensions_Database_TestCase
 
     protected function performExcessiveOverheadSkippingTest($l1)
     {
-        $pool = new Integrated($l1, new StaticL2(), time());
+        $pool = new Integrated($l1, new StaticL2(), time(), 2);
         $myaddr = new Address('mybin', 'mykey');
 
         // These should go through entirely.
@@ -714,6 +787,52 @@ class LCacheTest extends PHPUnit_Extensions_Database_TestCase
         $pool->set($myaddr, 'value', $pool->getCreatedTime() + 1);
         $this->assertEquals('value', $pool->get($myaddr));
         $this->assertEquals($pool->getCreatedTime() + 1, $l1->getEntry($myaddr)->expiration);
+    }
+
+    public function testDatabaseBatchDeletion()
+    {
+        $this->createSchema();
+        $l2 = (new Database($this->dbh))->setCreatedTime(time());
+        $myaddr = new Address('mybin', 'mykey');
+        $l2->set('mypool', $myaddr, 'myvalue');
+
+        $mybin = new Address('mybin', null);
+        $l2->delete('mypool', $mybin);
+
+        $this->assertNull($l2->get($myaddr));
+    }
+
+    public function testDatabaseCleanupAfterWrite()
+    {
+        $this->createSchema();
+        $myaddr = new Address('mybin', 'mykey');
+
+        // Write to the key with the first client.
+        $l2_client_a = (new Database($this->dbh))->setCreatedTime(time());
+        $event_id_a = $l2_client_a->set('mypool', $myaddr, 'myvalue');
+
+        // Verify that the first event exists and has the right value.
+        $event = $l2_client_a->getEvent($event_id_a);
+        $this->assertEquals('myvalue', $event->value);
+
+        // Use a second client. This gives us a fresh event_id_low_water,
+        // just like a new PHP request.
+        $l2_client_b = (new Database($this->dbh))->setCreatedTime(time());
+
+        // Write to the same key with the second client.
+        $event_id_b = $l2_client_b->set('mypool', $myaddr, 'myvalue2');
+
+        // Verify that the second event exists and has the right value.
+        $event = $l2_client_b->getEvent($event_id_b);
+        $this->assertEquals('myvalue2', $event->value);
+
+        // Call the same method as on destruction. This second client should
+        // now prune any writes to the key from earlier requests.
+        $l2_client_b->pruneReplacedEvents();
+
+        // Verify that the first event no longer exists.
+        $event = $l2_client_b->getEvent($event_id_a);
+        $this->assertNull($event);
     }
 
     /**
