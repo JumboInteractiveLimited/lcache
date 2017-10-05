@@ -7,16 +7,13 @@ namespace LCache;
  */
 abstract class LX
 {
-    protected $created_time;
-
     abstract public function getEntry(Address $address);
     abstract public function getHits();
     abstract public function getMisses();
 
     /**
      * Fetch a value from the cache.
-     *
-     * @param  Address $address
+     * @param Address $address
      * @return string|null
      */
     public function get(Address $address)
@@ -30,8 +27,7 @@ abstract class LX
 
     /**
      * Determine whether or not the specified Address exists in the cache.
-     *
-     * @param  Address $address
+     * @param Address $address
      * @return boolean
      */
     public function exists(Address $address)
@@ -43,11 +39,5 @@ abstract class LX
     public function collectGarbage($item_limit = null)
     {
         return 0;
-    }
-
-    public function setCreatedTime(int $timestamp): LX
-    {
-        $this->created_time = $timestamp;
-        return $this;
     }
 }
