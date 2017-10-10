@@ -7,9 +7,7 @@ use LCache\state\StateL1Interface;
 
 class SQLite extends L1
 {
-    /**
-     * @var \PDO
-     */
+    /** @var \PDO */
     private $dbh;
 
     protected static function tableExists(\PDO $dbh, $table_name)
@@ -68,18 +66,15 @@ class SQLite extends L1
 
     protected function pruneExpiredEntries()
     {
-        $sth = $this->dbh->prepare('DELETE FROM entries WHERE expiration < :now');
-        $sth->bindValue(':now', $this->created_time, \PDO::PARAM_INT);
         try {
-            $sth->execute();
-            // @codeCoverageIgnoreStart
+            return $this->dbh->exec("DELETE FROM entries WHERE expiration < " . time());
+        // @codeCoverageIgnoreStart
         } catch (\PDOException $e) {
             $text = 'LCache SQLiteL1: Pruning Failed: ' . $e->getMessage();
             trigger_error($text, E_USER_WARNING);
             return false;
         }
         // @codeCoverageIgnoreEnd
-        return $sth->rowCount();
     }
 
     public function __destruct()
@@ -149,9 +144,8 @@ class SQLite extends L1
 
     public function exists(Address $address)
     {
-        $sth = $this->dbh->prepare('SELECT COUNT(*) AS existing FROM entries WHERE "address" = :address AND ("expiration" >= :now OR "expiration" IS NULL) AND "value" IS NOT NULL');
+        $sth = $this->dbh->prepare('SELECT COUNT(*) AS existing FROM entries WHERE "address" = :address AND ("expiration" >= ' . time() . ' OR "expiration" IS NULL) AND "value" IS NOT NULL');
         $sth->bindValue(':address', $address->serialize(), \PDO::PARAM_STR);
-        $sth->bindValue(':now', $this->created_time, \PDO::PARAM_INT);
         $sth->execute();
         $result = $sth->fetchObject();
         return $result->existing > 0;
@@ -159,9 +153,8 @@ class SQLite extends L1
 
     public function isNegativeCache(Address $address)
     {
-        $sth = $this->dbh->prepare('SELECT COUNT(*) AS entry_count FROM entries WHERE "address" = :address AND ("expiration" >= :now OR "expiration" IS NULL) AND "value" IS NULL');
+        $sth = $this->dbh->prepare('SELECT COUNT(*) AS entry_count FROM entries WHERE "address" = :address AND ("expiration" >= ' . time() . ' OR "expiration" IS NULL) AND "value" IS NULL');
         $sth->bindValue(':address', $address->serialize(), \PDO::PARAM_STR);
-        $sth->bindValue(':now', $this->created_time, \PDO::PARAM_INT);
         $sth->execute();
         $result = $sth->fetchObject();
         return ($result->entry_count > 0);
@@ -183,9 +176,8 @@ class SQLite extends L1
 
     public function getEntry(Address $address)
     {
-        $sth = $this->dbh->prepare('SELECT "value", "expiration", "reads", "writes", "created" FROM entries WHERE "address" = :address AND ("expiration" >= :now OR "expiration" IS NULL)');
+        $sth = $this->dbh->prepare('SELECT "value", "expiration", "reads", "writes", "created" FROM entries WHERE "address" = :address AND ("expiration" >= ' . time() . ' OR "expiration" IS NULL)');
         $sth->bindValue(':address', $address->serialize(), \PDO::PARAM_STR);
-        $sth->bindValue(':now', $this->created_time, \PDO::PARAM_INT);
         $sth->execute();
         $entry = $sth->fetchObject();
 

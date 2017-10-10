@@ -8,9 +8,7 @@ use LCache\state\StateL1Interface;
 
 class APCu extends L1
 {
-    /**
-     * @var string
-     */
+    /** @var string */
     private $localKeyPrefix;
 
     public function __construct($pool, StateL1Interface $state)
@@ -100,7 +98,7 @@ class APCu extends L1
         $success = null;
         $entry = apcu_fetch($apcu_key, $success);
         // Handle failed reads.
-        if (false === $success) {
+        if ($entry === false && false == $success || !$entry->getTTL()) {
             $this->recordMiss();
             return null;
         }

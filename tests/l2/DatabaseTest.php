@@ -8,21 +8,14 @@ use PDO;
 use PHPUnit_Extensions_Database_DataSet_DefaultDataSet;
 use PHPUnit_Extensions_Database_TestCase;
 
-class DatabaseTest extends PHPUnit_Extensions_Database_TestCase
+class DatabaseTest extends L2CacheTest
 {
     protected $dbh = null;
 
-    public function testDatabaseBatchDeletion()
+    protected function buildL2()
     {
         DatabaseSchema::create($this->dbh);
-        $l2 = (new Database($this->dbh))->setCreatedTime(time());
-        $myaddr = new Address('mybin', 'mykey');
-        $l2->set('mypool', $myaddr, 'myvalue');
-
-        $mybin = new Address('mybin', null);
-        $l2->delete('mypool', $mybin);
-
-        $this->assertNull($l2->get($myaddr));
+        return new Database($this->dbh);
     }
 
     public function testDatabaseCleanupAfterWrite()
@@ -31,7 +24,7 @@ class DatabaseTest extends PHPUnit_Extensions_Database_TestCase
         $myaddr = new Address('mybin', 'mykey');
 
         // Write to the key with the first client.
-        $l2_client_a = (new Database($this->dbh))->setCreatedTime(time());
+        $l2_client_a = new Database($this->dbh);
         $event_id_a = $l2_client_a->set('mypool', $myaddr, 'myvalue');
 
         // Verify that the first event exists and has the right value.
@@ -40,7 +33,7 @@ class DatabaseTest extends PHPUnit_Extensions_Database_TestCase
 
         // Use a second client. This gives us a fresh event_id_low_water,
         // just like a new PHP request.
-        $l2_client_b = (new Database($this->dbh))->setCreatedTime(time());
+        $l2_client_b = new Database($this->dbh);
 
         // Write to the same key with the second client.
         $event_id_b = $l2_client_b->set('mypool', $myaddr, 'myvalue2');
@@ -58,27 +51,14 @@ class DatabaseTest extends PHPUnit_Extensions_Database_TestCase
         $this->assertNull($event);
     }
 
-    public function testExistsDatabase()
-    {
-        DatabaseSchema::create($this->dbh);
-        $l2 = (new Database($this->dbh))->setCreatedTime(time());
-        $myaddr = new Address('mybin', 'mykey');
-        $l2->set('mypool', $myaddr, 'myvalue');
-        $this->assertTrue($l2->exists($myaddr));
-        $l2->delete('mypool', $myaddr);
-        $this->assertFalse($l2->exists($myaddr));
-    }
-
     public function testEmptyCleanUpDatabase()
     {
-        DatabaseSchema::create($this->dbh);
-        $l2 = (new Database($this->dbh))->setCreatedTime(time());
+        $l2 = $this->buildL2();
     }
 
     public function testDatabasePrefix()
     {
-        DatabaseSchema::create($this->dbh, 'myprefix_');
-        $l2 = (new Database($this->dbh, 'myprefix_'))->setCreatedTime(time());
+        $l2 = $this->buildL2();
         $myaddr = new Address('mybin', 'mykey');
         $l2->set('mypool', $myaddr, 'myvalue', null, ['mytag']);
         $this->assertEquals('myvalue', $l2->get($myaddr));

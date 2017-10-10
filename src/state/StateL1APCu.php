@@ -14,24 +14,16 @@ namespace LCache\state;
  */
 class StateL1APCu implements StateL1Interface
 {
-    /**
-     * @var string
-     */
+    /** @var string */
     private $pool;
 
-    /**
-     * @var string
-     */
+    /** @var string */
     private $statusKeyHits;
 
-    /**
-     * @var string
-     */
+    /** @var string */
     private $statusKeyMisses;
 
-    /**
-     * @var string
-     */
+    /** @var string */
     private $statusKeyLastAppliedEventId;
 
     /**
