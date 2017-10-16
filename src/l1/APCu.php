@@ -98,7 +98,7 @@ class APCu extends L1
         $success = null;
         $entry = apcu_fetch($apcu_key, $success);
         // Handle failed reads.
-        if ($entry === false && false == $success || !$entry->getTTL()) {
+        if ($entry === false && false == $success || $entry->getTTL() === 0) {
             $this->recordMiss();
             return null;
         }
