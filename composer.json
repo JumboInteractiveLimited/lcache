@@ -26,7 +26,8 @@
         "phpunit/phpunit": "4.*",
         "phpunit/dbunit": "*",
         "satooshi/php-coveralls": "^1.0",
-        "squizlabs/php_codesniffer": "2.*"
+        "squizlabs/php_codesniffer": "2.*",
+        "phake/phake": "2.3.*"
     },
     "scripts": {
         "cs": "phpcs --standard=PSR2 -n src tests",
