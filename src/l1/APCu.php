@@ -8,9 +8,7 @@ use LCache\state\StateL1Interface;
 
 class APCu extends L1
 {
-    /**
-     * @var string
-     */
+    /** @var string */
     private $localKeyPrefix;
 
     public function __construct($pool, StateL1Interface $state)
@@ -52,7 +50,7 @@ class APCu extends L1
         }
         $entry = new Entry($event_id, $this->pool, $address, $value, $created, $expiration);
 
-        if ($entry->getTTL() === 0) {
+        if (is_null($entry->getTTL())) {
             // Item has already expired, but APCu treats a TTL of zero as no TTL.
             // So, we'll set nothing.
             return null;
@@ -100,7 +98,7 @@ class APCu extends L1
         $success = null;
         $entry = apcu_fetch($apcu_key, $success);
         // Handle failed reads.
-        if (false === $success) {
+        if ($entry === false && false == $success || $entry->getTTL() === 0) {
             $this->recordMiss();
             return null;
         }

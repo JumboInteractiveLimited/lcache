@@ -38,9 +38,7 @@ abstract class L1CacheTest extends \PHPUnit_Framework_TestCase
      */
     protected function createL1($pool = null)
     {
-        return (new L1CacheFactory())
-            ->create($this->driverName(), $pool)
-            ->setCreatedTime(time());
+        return (new L1CacheFactory())->create($this->driverName(), $pool);
     }
 
     public function testSetGetDelete()
@@ -162,7 +160,7 @@ abstract class L1CacheTest extends \PHPUnit_Framework_TestCase
             (new L1CacheFactory())
                 ->setPool('localhost-80')
                 ->create($this->driverName())
-                ->setCreatedTime(time())->getPool()
+                ->getPool()
         );
     }
 

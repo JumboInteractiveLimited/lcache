@@ -48,22 +48,46 @@ class L1CacheFactory
         return $l1CacheInstance;
     }
 
-    protected function createAPCu($pool): L1
+    /**
+     * Factory method for the L1 APCu driver.
+     *
+     * @param string $pool
+     * @return APCu
+     */
+    protected function createAPCu($pool)
     {
         return new APCu($pool, new StateL1APCu($pool));
     }
 
-    protected function createNull(string $pool): L1
+    /**
+     * Factory method for the L1 NULL driver.
+     *
+     * @param string $pool
+     * @return NullL1
+     */
+    protected function createNull($pool)
     {
         return new NullL1($pool, new StateL1Static());
     }
 
-    protected function createStatic(string $pool): L1
+    /**
+     * Factory method for the L1 static driver.
+     *
+     * @param string $pool
+     * @return StaticL1
+     */
+    protected function createStatic($pool)
     {
         return new StaticL1($pool, new StateL1Static());
     }
 
-    protected function createSQLite(string $pool): L1
+    /**
+     * Factory method for the L1 SQLite driver.
+     *
+     * @param string $pool
+     * @return SQLite
+     */
+    protected function createSQLite($pool)
     {
         $hasApcu = function_exists('apcu_fetch');
         // TODO: Maybe implement StateL1SQLite class instead of NULL one.
@@ -72,7 +96,11 @@ class L1CacheFactory
         return $cache;
     }
 
-    public function setPool(string $pool): L1CacheFactory
+    /**
+     * @param string $pool
+     * @return L1CacheFactory
+     */
+    public function setPool($pool)
     {
         $this->pool = $pool;
         return $this;

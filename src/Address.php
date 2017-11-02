@@ -8,14 +8,9 @@ namespace LCache;
  */
 final class Address implements \Serializable
 {
-    /**
-     * @var string|null
-     */
+    /** @var string|null */
     protected $bin;
-
-    /**
-     * @var string|null
-     */
+    /** @var string|null */
     protected $key;
 
     /**
@@ -33,7 +28,6 @@ final class Address implements \Serializable
 
     /**
      * Get the bin.
-     *
      * @return string|null
      */
     public function getBin()
@@ -43,7 +37,6 @@ final class Address implements \Serializable
 
     /**
      * Get the key.
-     *
      * @return string|null
      */
     public function getKey()
@@ -53,7 +46,6 @@ final class Address implements \Serializable
 
     /**
      * Return true if address refers to everything in the entire bin.
-     *
      * @return boolean
      */
     public function isEntireBin()
@@ -63,7 +55,6 @@ final class Address implements \Serializable
 
     /**
      * Return true if address refers to everything in the entire cache.
-     *
      * @return boolean
      */
     public function isEntireCache()
@@ -74,8 +65,7 @@ final class Address implements \Serializable
     /**
      * Return true if this object refers to any of the same objects as the
      * provided Address object.
-     *
-     * @param  Address $address
+     * @param Address $address
      * @return boolean
      */
     public function isMatch(Address $address)
@@ -116,7 +106,6 @@ final class Address implements \Serializable
 
     /**
      * Unpack a serialized Address into this object.
-     *
      * @param string $serialized
      */
     public function unserialize($serialized)

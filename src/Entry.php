@@ -25,7 +25,6 @@ final class Entry
 
     /**
      * Return the Address for this entry.
-     *
      * @return Address
      */
     public function getAddress()
@@ -35,7 +34,6 @@ final class Entry
 
     /**
      * Return the time-to-live for this entry.
-     *
      * @return integer
      */
     public function getTTL()
@@ -43,8 +41,10 @@ final class Entry
         if (is_null($this->expiration)) {
             return null;
         }
-        if ($this->expiration > $this->created) {
-            return $this->expiration - $this->created;
+	$now = time();
+
+        if ($this->expiration > $now) {
+            return $this->expiration - $now;
         }
         return 0;
     }
